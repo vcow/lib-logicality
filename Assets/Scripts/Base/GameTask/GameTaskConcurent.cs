@@ -17,6 +17,7 @@ namespace Base.GameTask
 		private bool _isStarted;
 		private int _startedTasksCount;
 		private readonly List<IGameTask> _tasks = new List<IGameTask>();
+		private readonly Mutex _completeMutex = new Mutex();
 
 		private bool _isDisposed;
 
@@ -126,12 +127,15 @@ namespace Base.GameTask
 			task.CompleteEvent -= SubTaskCompleteHandler;
 			_tasks.Remove(task);
 
-			Interlocked.Decrement(ref _startedTasksCount);
-
-			if (_startedTasksCount <= 0)
+			var completed = false;
+			if (_completeMutex.WaitOne())
 			{
-				Completed = true;
+				--_startedTasksCount;
+				completed = _startedTasksCount <= 0;
+				_completeMutex.ReleaseMutex();
 			}
+
+			if (completed) Completed = true;
 		}
 	}
 }
