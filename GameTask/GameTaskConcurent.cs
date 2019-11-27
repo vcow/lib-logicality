@@ -43,7 +43,7 @@ namespace Base.GameTask
 					task.CompleteEvent += SubTaskCompleteHandler;
 				});
 
-				_tasks.ForEach(task => task.Start());
+				_tasks.ToList().ForEach(task => task.Start());
 			}
 			else
 			{
