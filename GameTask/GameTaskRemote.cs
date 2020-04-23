@@ -29,11 +29,11 @@ namespace Base.GameTask
 
 				Assert.IsFalse(_completed);
 				_completed = value;
-				CompleteEvent?.Invoke(this);
+				CompleteEvent?.Invoke(this, new ReadyEventArgs(true));
 			}
 		}
 
-		public event GameTaskCompleteHandler CompleteEvent;
+		public event EventHandler CompleteEvent;
 
 		// ITask
 
@@ -55,8 +55,9 @@ namespace Base.GameTask
 
 		// \ITask
 
-		private void SubTaskCompleteHandler(IGameTask task)
+		private void SubTaskCompleteHandler(object sender, EventArgs args)
 		{
+			var task = (IGameTask) sender;
 			task.CompleteEvent -= SubTaskCompleteHandler;
 			_gameTask = null;
 			Completed = true;

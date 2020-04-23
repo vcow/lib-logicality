@@ -1,7 +1,7 @@
-﻿namespace Base.GameService
-{
-	public delegate void GameServiceReadyHandler(IGameService service);
+﻿using System;
 
+namespace Base.GameService
+{
 	/// <summary>
 	/// Интерфейс сущности, требующей начальной инициализации
 	/// </summary>
@@ -21,6 +21,6 @@
 		/// <summary>
 		/// Событие готовности сервиса.
 		/// </summary>
-		event GameServiceReadyHandler ReadyEvent;
+		event EventHandler ReadyEvent;
 	}
 }
