@@ -1,7 +1,7 @@
-﻿namespace Base.GameTask
-{
-	public delegate void GameTaskCompleteHandler(IGameTask task);
+﻿using System;
 
+namespace Base.GameTask
+{
 	/// <summary>
 	/// Задача.
 	/// </summary>
@@ -20,6 +20,6 @@
 		/// <summary>
 		/// Событие завершения задачи.
 		/// </summary>
-		event GameTaskCompleteHandler CompleteEvent;
+		event EventHandler CompleteEvent;
 	}
 }

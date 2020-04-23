@@ -1,3 +1,5 @@
+using System;
+
 namespace Base.Activatable
 {
 	public enum ActivatableState
@@ -8,7 +10,17 @@ namespace Base.Activatable
 		ToInactive
 	}
 
-	public delegate void ActivatableStateChangedHandler(IActivatable activatable, ActivatableState state);
+	public class ActivatableStateChangedEventArgs : EventArgs
+	{
+		public ActivatableState CurrentState { get; }
+		public ActivatableState PreviousState { get; }
+
+		public ActivatableStateChangedEventArgs(ActivatableState currentState, ActivatableState previousState)
+		{
+			CurrentState = currentState;
+			PreviousState = previousState;
+		}
+	}
 
 	public interface IActivatable
 	{
@@ -20,7 +32,7 @@ namespace Base.Activatable
 		/// <summary>
 		/// Событие изменения текущего состояния.
 		/// </summary>
-		event ActivatableStateChangedHandler ActivatableStateChangedEvent;
+		event EventHandler ActivatableStateChangedEvent;
 
 		/// <summary>
 		/// Активировать объект.

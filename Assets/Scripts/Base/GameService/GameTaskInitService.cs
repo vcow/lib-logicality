@@ -32,11 +32,11 @@ namespace Base.GameService
 
 				Assert.IsFalse(_completed);
 				_completed = value;
-				CompleteEvent?.Invoke(this);
+				CompleteEvent?.Invoke(this, new ReadyEventArgs(true));
 			}
 		}
 
-		public event GameTaskCompleteHandler CompleteEvent;
+		public event EventHandler CompleteEvent;
 
 		public void Start()
 		{
@@ -68,8 +68,9 @@ namespace Base.GameService
 
 		// \IDisposable
 
-		private void OnServiceReady(IGameService service)
+		private void OnServiceReady(object sender, EventArgs args)
 		{
+			Assert.IsTrue(sender == _gameService);
 			_gameService.ReadyEvent -= OnServiceReady;
 			Completed = true;
 		}
