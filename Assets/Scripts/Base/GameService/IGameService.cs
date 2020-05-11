@@ -21,6 +21,6 @@ namespace Base.GameService
 		/// <summary>
 		/// Событие готовности сервиса.
 		/// </summary>
-		event EventHandler ReadyEvent;
+		event EventHandler<ReadyEventArgs> ReadyEvent;
 	}
 }
