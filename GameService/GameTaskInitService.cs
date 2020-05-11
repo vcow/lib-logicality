@@ -36,7 +36,7 @@ namespace Base.GameService
 			}
 		}
 
-		public event EventHandler CompleteEvent;
+		public event EventHandler<ReadyEventArgs> CompleteEvent;
 
 		public void Start()
 		{

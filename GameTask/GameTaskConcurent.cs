@@ -64,7 +64,7 @@ namespace Base.GameTask
 			}
 		}
 
-		public event EventHandler CompleteEvent;
+		public event EventHandler<ReadyEventArgs> CompleteEvent;
 
 		// \ITask
 

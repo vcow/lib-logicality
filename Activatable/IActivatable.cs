@@ -32,7 +32,7 @@ namespace Base.Activatable
 		/// <summary>
 		/// Событие изменения текущего состояния.
 		/// </summary>
-		event EventHandler ActivatableStateChangedEvent;
+		event EventHandler<ActivatableStateChangedEventArgs> ActivatableStateChangedEvent;
 
 		/// <summary>
 		/// Активировать объект.

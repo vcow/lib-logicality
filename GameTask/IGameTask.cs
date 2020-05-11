@@ -20,6 +20,6 @@ namespace Base.GameTask
 		/// <summary>
 		/// Событие завершения задачи.
 		/// </summary>
-		event EventHandler CompleteEvent;
+		event EventHandler<ReadyEventArgs> CompleteEvent;
 	}
 }
