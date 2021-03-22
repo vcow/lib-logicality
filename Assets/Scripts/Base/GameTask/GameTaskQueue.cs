@@ -37,11 +37,11 @@ namespace Base.GameTask
 
 				Assert.IsFalse(_completed);
 				_completed = value;
-				CompleteEvent?.Invoke(this);
+				CompleteEvent?.Invoke(this, new ReadyEventArgs(true));
 			}
 		}
 
-		public event GameTaskCompleteHandler CompleteEvent;
+		public event EventHandler<ReadyEventArgs> CompleteEvent;
 
 		// \ITask
 
@@ -70,12 +70,7 @@ namespace Base.GameTask
 				_currentGameTask = null;
 			}
 
-			if (CompleteEvent != null)
-			{
-				// ReSharper disable once PossibleInvalidCastExceptionInForeachLoop
-				foreach (GameTaskCompleteHandler handler in CompleteEvent.GetInvocationList())
-					CompleteEvent -= handler;
-			}
+			CompleteEvent = null;
 		}
 
 		// \IDisposable
@@ -140,8 +135,9 @@ namespace Base.GameTask
 			}
 		}
 
-		private void SubTaskCompleteHandler(IGameTask task)
+		private void SubTaskCompleteHandler(object sender, EventArgs args)
 		{
+			var task = (IGameTask) sender;
 			task.CompleteEvent -= SubTaskCompleteHandler;
 			StartNextTask();
 		}
