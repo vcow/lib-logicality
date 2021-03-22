@@ -36,5 +36,4 @@ sysinfo.txt
 *.apk
 *.unitypackage
 
-/Assets/Plugins/Editor.meta
-/Assets/Plugins/Editor
+/Assets/Plugins/
