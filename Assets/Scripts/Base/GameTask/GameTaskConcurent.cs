@@ -15,9 +15,10 @@ namespace Base.GameTask
 	{
 		private bool _completed;
 		private bool _isStarted;
-		private int _startedTasksCount;
 		private readonly List<IGameTask> _tasks = new List<IGameTask>();
+		private readonly List<IDisposable> _subTaskCompleteHandlers = new List<IDisposable>();
 		private readonly Mutex _completeMutex = new Mutex();
+		private readonly ObservableImpl<bool> _completedChangesStream = new ObservableImpl<bool>();
 
 		private bool _isDisposed;
 
@@ -28,22 +29,49 @@ namespace Base.GameTask
 			if (_isStarted || Completed || _isDisposed) return;
 
 			_isStarted = true;
-			_startedTasksCount = _tasks.Count;
-			if (_startedTasksCount > 0)
+			if (_tasks.Count > 0)
 			{
 				_tasks.ToList().ForEach(task =>
 				{
 					if (task.Completed)
 					{
-						Debug.LogWarning("Task in concurent already completed.");
+						Debug.LogWarning("Task in Concurent already completed.");
 						_tasks.Remove(task);
 						return;
 					}
 
-					task.CompleteEvent += SubTaskCompleteHandler;
+					IDisposable handler = null;
+					handler = task.CompletedChangesStream
+						.Subscribe(new ObserverImpl<bool>(b =>
+						{
+							if (!b) return;
+
+							var completed = false;
+							// ReSharper disable AccessToModifiedClosure
+							if (_completeMutex.WaitOne())
+							{
+								Assert.IsNotNull(handler);
+								handler.Dispose();
+								_subTaskCompleteHandlers.Remove(handler);
+								completed = _subTaskCompleteHandlers.Count <= 0;
+								_completeMutex.ReleaseMutex();
+							}
+							// ReSharper restore AccessToModifiedClosure
+
+							if (completed) Completed = true;
+						}));
+					_subTaskCompleteHandlers.Add(handler);
 				});
 
-				_tasks.ToList().ForEach(task => task.Start());
+				if (_tasks.Count > 0)
+				{
+					_tasks.ToList().ForEach(task => task.Start());
+					_tasks.Clear();
+				}
+				else
+				{
+					Completed = true;
+				}
 			}
 			else
 			{
@@ -57,14 +85,15 @@ namespace Base.GameTask
 			private set
 			{
 				if (value == _completed) return;
-
-				Assert.IsFalse(_completed);
 				_completed = value;
-				CompleteEvent?.Invoke(this, new ReadyEventArgs(true));
+
+				Assert.IsTrue(_completed);
+				_completedChangesStream.OnNext(_completed);
+				_completedChangesStream.OnCompleted();
 			}
 		}
 
-		public event EventHandler<ReadyEventArgs> CompleteEvent;
+		public IObservable<bool> CompletedChangesStream => _completedChangesStream;
 
 		// \ITask
 
@@ -75,15 +104,11 @@ namespace Base.GameTask
 			if (_isDisposed) return;
 			_isDisposed = true;
 
-			if (_isStarted)
-			{
-				_tasks.ForEach(task => task.CompleteEvent -= SubTaskCompleteHandler);
-			}
+			_subTaskCompleteHandlers.ForEach(disposable => disposable.Dispose());
+			_subTaskCompleteHandlers.Clear();
 
 			_tasks.ForEach(task => (task as IDisposable)?.Dispose());
 			_tasks.Clear();
-
-			CompleteEvent = null;
 		}
 
 		// \IDisposable
@@ -95,10 +120,8 @@ namespace Base.GameTask
 		{
 			if (_isDisposed) return;
 
-			if (_isStarted)
-			{
-				_tasks.ForEach(task => task.CompleteEvent -= SubTaskCompleteHandler);
-			}
+			_subTaskCompleteHandlers.ForEach(disposable => disposable.Dispose());
+			_subTaskCompleteHandlers.Clear();
 
 			_tasks.Clear();
 		}
@@ -115,23 +138,6 @@ namespace Base.GameTask
 			if (_isStarted) throw new Exception("Concurent already executed.");
 			Assert.IsFalse(Completed, "Concurent already completed, added task will have no effect.");
 			_tasks.Add(gameTask);
-		}
-
-		private void SubTaskCompleteHandler(object sender, EventArgs args)
-		{
-			var task = (IGameTask) sender;
-			task.CompleteEvent -= SubTaskCompleteHandler;
-			_tasks.Remove(task);
-
-			var completed = false;
-			if (_completeMutex.WaitOne())
-			{
-				--_startedTasksCount;
-				completed = _startedTasksCount <= 0;
-				_completeMutex.ReleaseMutex();
-			}
-
-			if (completed) Completed = true;
 		}
 	}
 }

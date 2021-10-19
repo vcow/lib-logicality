@@ -19,8 +19,8 @@ namespace Base.GameService
 		bool IsReady { get; }
 
 		/// <summary>
-		/// Событие готовности сервиса.
+		/// Поток изменения состояния готовности сервиса.
 		/// </summary>
-		event EventHandler<ReadyEventArgs> ReadyEvent;
+		IObservable<bool> IsReadyChangesStream { get; }
 	}
 }

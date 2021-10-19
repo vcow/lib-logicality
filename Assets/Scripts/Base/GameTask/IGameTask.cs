@@ -18,8 +18,8 @@ namespace Base.GameTask
 		bool Completed { get; }
 
 		/// <summary>
-		/// Событие завершения задачи.
+		/// Поток изменения состояния завершения задачи.
 		/// </summary>
-		event EventHandler<ReadyEventArgs> CompleteEvent;
+		IObservable<bool> CompletedChangesStream { get; }
 	}
 }

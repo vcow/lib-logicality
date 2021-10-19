@@ -3,16 +3,17 @@ using UnityEngine.Assertions;
 
 namespace Base.GameTask
 {
-	/// <inheritdoc />
+	/// <inheritdoc cref="Base.GameTask.IGameTask" />
 	/// <summary>
 	/// Отложенная задача. Принимает замыкание, которое будет вызвано в момент старта задачи.
 	/// </summary>
-	public class GameTaskRemote : IGameTask
+	public class GameTaskRemote : IGameTask, IDisposable
 	{
+		private bool _isDisposed;
 		private bool _completed;
 		private readonly Func<IGameTask> _closure;
-
-		private IDisposable _completeHandler;
+		private readonly ObservableImpl<bool> _completedChangesStream = new ObservableImpl<bool>();
+		private IDisposable _completedHandler;
 		private IGameTask _gameTask;
 
 		public GameTaskRemote(Func<IGameTask> closure)
@@ -26,26 +27,48 @@ namespace Base.GameTask
 			private set
 			{
 				if (value == _completed) return;
-
-				Assert.IsFalse(_completed);
 				_completed = value;
-				CompleteEvent?.Invoke(this, new ReadyEventArgs(true));
+
+				Assert.IsTrue(_completed);
+				_completedChangesStream.OnNext(_completed);
+				_completedChangesStream.OnCompleted();
 			}
 		}
 
-		public event EventHandler<ReadyEventArgs> CompleteEvent;
+		public IObservable<bool> CompletedChangesStream => _completedChangesStream;
 
 		// ITask
 
+		public void Dispose()
+		{
+			if (_isDisposed) return;
+			_isDisposed = true;
+
+			_completedHandler?.Dispose();
+			_completedHandler = null;
+
+			_completedChangesStream.Dispose();
+
+			_gameTask = null;
+		}
+
 		public void Start()
 		{
-			if (_gameTask != null || Completed) return;
+			if (_isDisposed || _gameTask != null || Completed) return;
 
 			_gameTask = _closure.Invoke();
 			if (_gameTask != null)
 			{
-				_gameTask.CompleteEvent += SubTaskCompleteHandler;
-				_gameTask.Start();
+				if (_gameTask.Completed)
+				{
+					SubTaskCompleteHandler(true);
+				}
+				else
+				{
+					_completedHandler = _gameTask.CompletedChangesStream
+						.Subscribe(new ObserverImpl<bool>(SubTaskCompleteHandler));
+					_gameTask.Start();
+				}
 			}
 			else
 			{
@@ -55,10 +78,13 @@ namespace Base.GameTask
 
 		// \ITask
 
-		private void SubTaskCompleteHandler(object sender, EventArgs args)
+		private void SubTaskCompleteHandler(bool result)
 		{
-			var task = (IGameTask) sender;
-			task.CompleteEvent -= SubTaskCompleteHandler;
+			if (!result) return;
+
+			_completedHandler?.Dispose();
+			_completedHandler = null;
+
 			_gameTask = null;
 			Completed = true;
 		}

@@ -10,18 +10,6 @@ namespace Base.Activatable
 		ToInactive
 	}
 
-	public class ActivatableStateChangedEventArgs : EventArgs
-	{
-		public ActivatableState CurrentState { get; }
-		public ActivatableState PreviousState { get; }
-
-		public ActivatableStateChangedEventArgs(ActivatableState currentState, ActivatableState previousState)
-		{
-			CurrentState = currentState;
-			PreviousState = previousState;
-		}
-	}
-
 	public interface IActivatable
 	{
 		/// <summary>
@@ -30,9 +18,9 @@ namespace Base.Activatable
 		ActivatableState ActivatableState { get; }
 
 		/// <summary>
-		/// Событие изменения текущего состояния.
+		/// Поток изменения текущего состояния.
 		/// </summary>
-		event EventHandler<ActivatableStateChangedEventArgs> ActivatableStateChangedEvent;
+		IObservable<ActivatableState> ActivatableStateChangesStream { get; }
 
 		/// <summary>
 		/// Активировать объект.

@@ -14,9 +14,11 @@ namespace Base.GameTask
 	{
 		private bool _completed;
 		private readonly Queue<IGameTask> _queue = new Queue<IGameTask>();
+		private readonly ObservableImpl<bool> _completedChangesStream = new ObservableImpl<bool>();
 		private readonly Mutex _queueMutex = new Mutex();
 
 		private IGameTask _currentGameTask;
+		private IDisposable _currentGameTaskCompleteHandler;
 
 		private bool _isDisposed;
 
@@ -34,14 +36,15 @@ namespace Base.GameTask
 			private set
 			{
 				if (value == _completed) return;
-
-				Assert.IsFalse(_completed);
 				_completed = value;
-				CompleteEvent?.Invoke(this, new ReadyEventArgs(true));
+
+				Assert.IsTrue(_completed);
+				_completedChangesStream.OnNext(_completed);
+				_completedChangesStream.OnCompleted();
 			}
 		}
 
-		public event EventHandler<ReadyEventArgs> CompleteEvent;
+		public IObservable<bool> CompletedChangesStream => _completedChangesStream;
 
 		// \ITask
 
@@ -63,14 +66,16 @@ namespace Base.GameTask
 				_queueMutex.ReleaseMutex();
 			}
 
+			_currentGameTaskCompleteHandler?.Dispose();
+			_currentGameTaskCompleteHandler = null;
+
 			if (_currentGameTask != null)
 			{
-				_currentGameTask.CompleteEvent -= SubTaskCompleteHandler;
 				(_currentGameTask as IDisposable)?.Dispose();
 				_currentGameTask = null;
 			}
 
-			CompleteEvent = null;
+			_completedChangesStream.Dispose();
 		}
 
 		// \IDisposable
@@ -88,11 +93,9 @@ namespace Base.GameTask
 				_queueMutex.ReleaseMutex();
 			}
 
-			if (_currentGameTask != null)
-			{
-				_currentGameTask.CompleteEvent -= SubTaskCompleteHandler;
-				_currentGameTask = null;
-			}
+			_currentGameTaskCompleteHandler?.Dispose();
+			_currentGameTaskCompleteHandler = null;
+			_currentGameTask = null;
 		}
 
 		/// <summary>
@@ -113,6 +116,9 @@ namespace Base.GameTask
 
 		private void StartNextTask()
 		{
+			_currentGameTaskCompleteHandler?.Dispose();
+			_currentGameTaskCompleteHandler = null;
+
 			if (_queueMutex.WaitOne())
 			{
 				_currentGameTask = _queue.Count > 0 ? _queue.Dequeue() : null;
@@ -130,16 +136,14 @@ namespace Base.GameTask
 			}
 			else
 			{
-				_currentGameTask.CompleteEvent += SubTaskCompleteHandler;
+				_currentGameTaskCompleteHandler = _currentGameTask.CompletedChangesStream
+					.Subscribe(new ObserverImpl<bool>(b =>
+					{
+						if (!b) return;
+						StartNextTask();
+					}));
 				_currentGameTask.Start();
 			}
-		}
-
-		private void SubTaskCompleteHandler(object sender, EventArgs args)
-		{
-			var task = (IGameTask) sender;
-			task.CompleteEvent -= SubTaskCompleteHandler;
-			StartNextTask();
 		}
 	}
 }

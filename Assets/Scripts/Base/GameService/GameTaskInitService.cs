@@ -12,13 +12,17 @@ namespace Base.GameService
 	{
 		private bool _completed;
 		private readonly IGameService _gameService;
+		private readonly object[] _args;
+		private readonly ObservableImpl<bool> _completedChangesStream = new ObservableImpl<bool>();
+		private IDisposable _gameServiceReadyHandler;
 
 		private bool _isDisposed;
 		private bool _isStarted;
 
-		public GameTaskInitService(IGameService gameService)
+		public GameTaskInitService(IGameService gameService, object[] args = null)
 		{
-			_gameService = gameService;
+			_gameService = gameService ?? throw new ArgumentNullException();
+			_args = args ?? Array.Empty<object>();
 		}
 
 		// ITask
@@ -29,14 +33,15 @@ namespace Base.GameService
 			private set
 			{
 				if (value == _completed) return;
-
-				Assert.IsFalse(_completed);
 				_completed = value;
-				CompleteEvent?.Invoke(this, new ReadyEventArgs(true));
+
+				Assert.IsTrue(_completed);
+				_completedChangesStream.OnNext(_completed);
+				_completedChangesStream.OnCompleted();
 			}
 		}
 
-		public event EventHandler<ReadyEventArgs> CompleteEvent;
+		public IObservable<bool> CompletedChangesStream => _completedChangesStream;
 
 		public void Start()
 		{
@@ -50,8 +55,15 @@ namespace Base.GameService
 				return;
 			}
 
-			_gameService.ReadyEvent += OnServiceReady;
-			_gameService.Initialize();
+			_gameServiceReadyHandler = _gameService.IsReadyChangesStream
+				.Subscribe(new ObserverImpl<bool>(b =>
+				{
+					if (!b) return;
+					_gameServiceReadyHandler?.Dispose();
+					_gameServiceReadyHandler = null;
+					Completed = true;
+				}));
+			_gameService.Initialize(_args);
 		}
 
 		// \ITask
@@ -63,16 +75,10 @@ namespace Base.GameService
 			if (_isDisposed) return;
 			_isDisposed = true;
 
-			_gameService.ReadyEvent -= OnServiceReady;
+			_gameServiceReadyHandler?.Dispose();
+			_gameServiceReadyHandler = null;
 		}
 
 		// \IDisposable
-
-		private void OnServiceReady(object sender, EventArgs args)
-		{
-			Assert.IsTrue(sender == _gameService);
-			_gameService.ReadyEvent -= OnServiceReady;
-			Completed = true;
-		}
 	}
 }
