@@ -38,3 +38,5 @@ sysinfo.txt
 *.unitypackage
 
 /Assets/Plugins/
+
+*.DS_Store
