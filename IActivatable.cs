@@ -1,7 +1,8 @@
-using System;
-
 namespace Base.Activatable
 {
+	/// <summary>
+	/// Activatqble states.
+	/// </summary>
 	public enum ActivatableState
 	{
 		Inactive,
@@ -10,26 +11,35 @@ namespace Base.Activatable
 		ToInactive
 	}
 
+	/// <summary>
+	/// Delegate for state change event.
+	/// </summary>
+	public delegate void ActivatableStateChangedHandler(IActivatable activatable, ActivatableState state);
+
+	/// <summary>
+	/// Activatable - is the entity that can take an active/inactive state, as well as intermediate states
+	/// when moving from inactive to active and vice versa.
+	/// </summary>
 	public interface IActivatable
 	{
 		/// <summary>
-		/// Текущее состояние активируемого объекта.
+		/// Current state of the activatable object.
 		/// </summary>
 		ActivatableState ActivatableState { get; }
 
 		/// <summary>
-		/// Поток изменения текущего состояния.
+		/// Activtable object state change event.
 		/// </summary>
-		IObservable<ActivatableState> ActivatableStateChangesStream { get; }
+		event ActivatableStateChangedHandler ActivatableStateChangedEvent;
 
 		/// <summary>
-		/// Активировать объект.
+		/// Activate object.
 		/// </summary>
 		/// <param name="immediately">Флаг, указывающий активировать объект немедленно.</param>
 		void Activate(bool immediately = false);
 
 		/// <summary>
-		/// Деактивировать объект.
+		/// Deactivate object.
 		/// </summary>
 		/// <param name="immediately">Флаг, указывающий деактивировать объект немедленно.</param>
 		void Deactivate(bool immediately = false);
