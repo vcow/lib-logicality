@@ -143,13 +143,10 @@ namespace Base.Assignments
 			}
 		}
 
-#if DEBUG
+#if DEBUG_DESTRUCTION
 		~AssignmentConcurrent()
 		{
-			if (Debug.isDebugBuild)
-			{
-				Debug.Log("The Assignments Concurrent completely destroyed.");
-			}
+			Debug.Log("The Assignments Concurrent completely destroyed.");
 		}
 #endif
 

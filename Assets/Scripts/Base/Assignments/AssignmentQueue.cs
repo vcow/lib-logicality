@@ -91,13 +91,10 @@ namespace Base.Assignments
 			}
 		}
 
-#if DEBUG
+#if DEBUG_DESTRUCTION
 		~AssignmentQueue()
 		{
-			if (Debug.isDebugBuild)
-			{
-				Debug.Log("The Assignments Queue completely destroyed.");
-			}
+			Debug.Log("The Assignments Queue completely destroyed.");
 		}
 #endif
 
